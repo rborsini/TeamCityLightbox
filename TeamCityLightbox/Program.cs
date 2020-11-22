@@ -13,6 +13,7 @@ namespace TeamCityLightbox
     {
         static void Main(string[] args)
         {
+
             var serialPort = new SerialPort(ConfigurationManager.AppSettings["serialPort"], 9600, Parity.None, 8, StopBits.One);
 
             serialPort.Open();
@@ -21,8 +22,13 @@ namespace TeamCityLightbox
             {
                 var parts = arg.Split(':');
                 var cmd = parts[0];
-                var delay = parts.Length == 2 ? Convert.ToInt32(parts[1]) : 0;
+                var delay = parts.Length >= 2 ? Convert.ToInt32(parts[1]) : 0;
+                var beep = parts.Length == 3 && parts[2] == "beep";
 
+                if (beep)
+                    Console.Beep();
+
+                Console.WriteLine($"{cmd}:{delay}:{beep}");
                 serialPort.WriteLine(cmd);
                 Thread.Sleep(delay);
             }
