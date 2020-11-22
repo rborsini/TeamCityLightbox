@@ -26,6 +26,8 @@ void loop() {
     slide();
   } else if(lastCommand.startsWith("blink")) {
     blinkAll();
+  } else if(lastCommand.startsWith("on")) {
+    on();    
   } else {
     off();
   }
@@ -71,6 +73,14 @@ void blink(int led) {
 
   digitalWrite(led, HIGH);
   delay(500);
+
+}
+
+void on() {
+
+  digitalWrite(LED_1, HIGH);
+  digitalWrite(LED_2, HIGH); 
+  digitalWrite(LED_3, HIGH); 
 
 }
 
