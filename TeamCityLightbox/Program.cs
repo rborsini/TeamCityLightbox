@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RestSharp;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO.Ports;
@@ -6,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web.Helpers;
 
 namespace TeamCityLightbox
 {
@@ -14,33 +16,55 @@ namespace TeamCityLightbox
         static void Main(string[] args)
         {
 
-            var serialPort = new SerialPort(ConfigurationManager.AppSettings["serialPort"], 9600, Parity.None, 8, StopBits.One);
+            var stepName = args[0];
+            var buildId = Convert.ToInt32(args[1]);
 
-            serialPort.Open();
+            var build = GetBuildStatus(buildId);
 
-            foreach(var arg in args)
+            if(stepName == "Led_ON")
             {
-                var parts = arg.Split(':');
-                var cmd = parts[0];
-                var delay = parts.Length >= 2 ? Convert.ToInt32(parts[1]) : 0;
-                var beep = parts.Length == 3 && parts[2] == "beep";
-
-                if (beep)
-                    Console.Beep();
-
-                Console.WriteLine($"{cmd}:{delay}:{beep}");
-                serialPort.WriteLine(cmd);
-                Thread.Sleep(delay);
+                Console.WriteLine("slide");
+                SerialWrite("slide");
             }
 
-            //serialPort.WriteLine("slide");
-            //Thread.Sleep(5000);
-            //serialPort.WriteLine("blink");
-            //Thread.Sleep(5000);
-            //serialPort.WriteLine("off");
+            if (stepName == "Led_OFF")
+            {
+                var cmd = build.Status == "SUCCESS" ? "on" : "blink";
+                Console.WriteLine(cmd);
+                SerialWrite(cmd);
 
-            serialPort.Close();
+                Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings["delay"]));
+                Console.WriteLine("off");
+                SerialWrite("off");
+            }
 
         }
+
+
+        private static void SerialWrite(string cmd)
+        {
+            var serialPort = new SerialPort(ConfigurationManager.AppSettings["serialPort"], 9600, Parity.None, 8, StopBits.One);
+            serialPort.Open();
+
+            serialPort.WriteLine(cmd);
+
+            serialPort.Close();
+        }
+
+        private static dynamic GetBuildStatus(int buildId)
+        {
+            var baseUrl = ConfigurationManager.AppSettings["teamCity_url"];
+            var accessToken = ConfigurationManager.AppSettings["teamCity_accessToken"];
+
+            var client = new RestClient($"{baseUrl}/app/rest/builds/{buildId}");
+            client.Timeout = -1;
+            var request = new RestRequest(Method.GET);
+            request.AddHeader("Authorization", $"Bearer {accessToken}");
+            IRestResponse response = client.Execute(request);
+            Console.WriteLine(response.Content);
+
+            return Json.Decode(response.Content);
+        }
+
     }
 }
